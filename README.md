@@ -32,3 +32,5 @@ Generator task specifies how many molding machines and data points will be produ
 ```Java
 GeneratorTask.newGeneratorTask(Machines machines, int dataPointCount);
 ```
+## Demo Visualization
+ChartinClientDemo is used to visualize data generation in real-time. Run start.sh to start it.
