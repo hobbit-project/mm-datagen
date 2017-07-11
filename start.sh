@@ -1,0 +1,1 @@
+java -cp wm-data-gen-1.0-SNAPSHOT.jar:jchart2d-3.2.2.jar com.agt.ferromatikdata.client.ChartingClientDemo
