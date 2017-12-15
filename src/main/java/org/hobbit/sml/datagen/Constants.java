@@ -1,4 +1,4 @@
-package com.agtinternational.hobbit.sml.datagen;
+package org.hobbit.sml.datagen;
 
 public class Constants {
     // =============== STRUCTURED DATA GENERATOR CONSTANTS ===============

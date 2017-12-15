@@ -1,7 +1,7 @@
-package com.agtinternational.hobbit.sml.datagen;
+package org.hobbit.sml.datagen;
 
-import com.agtinternational.hobbit.sdk.utils.CommandSender;
-import com.agtinternational.hobbit.sdk.utils.commandreactions.CommandReaction;
+import org.hobbit.sdk.utils.CommandSender;
+import org.hobbit.sdk.utils.commandreactions.CommandReaction;
 import org.hobbit.core.Commands;
 
 public class StartGeneratorWhenReady implements CommandReaction {
@@ -13,7 +13,8 @@ public class StartGeneratorWhenReady implements CommandReaction {
 
     }
 
-    public void accept(Byte command, byte[] bytes) {
+    @Override
+    public void  handleCmd(Byte command, byte[] data, String replyTo){
         if (command.byteValue() == 3) {
             this.generatorReady = true;
         }
@@ -31,4 +32,6 @@ public class StartGeneratorWhenReady implements CommandReaction {
 
         }
     }
+
+
 }
