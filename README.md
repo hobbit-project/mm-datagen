@@ -34,3 +34,6 @@ GeneratorTask.newGeneratorTask(Machines machines, int dataPointCount);
 ```
 ## Demo Visualization
 ChartinClientDemo is used to visualize data generation in real-time. Run start.sh to start it.
+
+##Mimicking image
+Docker image for the OdinBenchmark is available here: git.project-hobbit.eu:4567/smirnp/sml-data-generator
