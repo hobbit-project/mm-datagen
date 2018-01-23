@@ -77,21 +77,26 @@ public class DataGenerator extends AbstractDataGenerator {
         String test="123";
     }
 
-    @Override
-    protected void generateData() throws Exception {
+    //@Override
+    public void generateData() throws Exception {
         logger.debug("generateData()");
         int dataGeneratorId = getGeneratorId();
         int numberOfGenerators = getNumberOfGenerators();
 
         dataGenerator.run();
         logger.debug("generation finished");
+        sendData();
     }
 
     public void sendData() throws IOException {
-        String str = String.join("",tuplesToSend.toArray(new String[0]));
-        InputStream is = new ByteArrayInputStream(str.getBytes());
-        SimpleFileSender sender = SimpleFileSender.create(this.outgoingDataQueuefactory, System.getenv().get(DATA_QUEUE_NAME_KEY));
-        sender.streamData(is, "name");
+        String str = String.join("", tuplesToSend.toArray(new String[0]));
+        String queueName = System.getenv().get(DATA_QUEUE_NAME_KEY);
+        byte[] bytesToSend = str.getBytes();
+        logger.debug("Sending "+String.valueOf(bytesToSend.length)+" bytes to rabbitMQ (queueName="+queueName+")");
+
+        InputStream is = new ByteArrayInputStream(bytesToSend);
+        SimpleFileSender sender = SimpleFileSender.create(this.outgoingDataQueuefactory, queueName);
+        sender.streamData(is, queueName+".rdf");
     }
 
     @Override
@@ -108,9 +113,7 @@ public class DataGenerator extends AbstractDataGenerator {
                 String outputDataPoint = dataPointSource.formatUsing(outputFormatter);
                 byte[] bytesToSend = outputDataPoint.getBytes();
                 tuplesToSend.add(outputDataPoint);
-                sendDataToSystemAdapter(bytesToSend);
                 bytesSent += bytesToSend.length;
-                logger.debug(String.valueOf(bytesToSend.length)+" bytes sent to rabbitMQ");
             } catch (Exception e) {
                 logger.error("Exception", e);
             }

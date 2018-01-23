@@ -1,33 +1,41 @@
 package org.hobbit.sml.datagen;
 
+import org.apache.jena.rdf.model.*;
 import org.hobbit.core.components.Component;
 import org.hobbit.sdk.ComponentsExecutor;
-import org.hobbit.sdk.EnvironmentVariables;
+import org.hobbit.sdk.EnvironmentVariablesWrapper;
 import org.hobbit.sdk.docker.AbstractDockerizer;
 
 import org.hobbit.sdk.docker.RabbitMqDockerizer;
-import org.hobbit.sdk.docker.builders.SystemAdapterDockerBuilder;
 import org.hobbit.sdk.utils.CommandQueueListener;
 
+import org.hobbit.sml.datagen.docker.CommonDockersBuilder;
+import org.hobbit.sml.datagen.docker.SMLDataGenDockerBuilder;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 
 import static org.hobbit.core.Constants.DATA_QUEUE_NAME_KEY;
 import static org.hobbit.sml.datagen.Constants.*;
+import static org.hobbit.sml.datagen.docker.CommonDockersBuilder.DATAGEN_IMAGE_NAME;
 
 /**
  * @author Pavel Smirnov
  */
 
-public class DataGeneratorTest extends EnvironmentVariables {
+public class DataGeneratorTest extends EnvironmentVariablesWrapper {
 
     private AbstractDockerizer rabbitMqDockerizer;
     private ComponentsExecutor componentsExecutor;
     private CommandQueueListener commandQueueListener;
 
-    @Before
-    public void before() throws Exception {
+    private SMLDataGenDockerBuilder dataGenBuilder;
+
+    public void init() throws Exception {
 
         componentsExecutor = new ComponentsExecutor();
         commandQueueListener = new CommandQueueListener();
@@ -47,20 +55,17 @@ public class DataGeneratorTest extends EnvironmentVariables {
         environmentVariables.set(FORMAT_INPUT_NAME, "0");
         environmentVariables.set(DATA_QUEUE_NAME_KEY, "test1");
 
-        String systemContainerId = "1234kj34k";
+        dataGenBuilder = new SMLDataGenDockerBuilder(new CommonDockersBuilder(DataGeneratorRunner.class, DATAGEN_IMAGE_NAME).useCachedImage(true));
 
-        //rabbitMqDockerizer.run();
-        commandQueueListener.setCommandReactions(new StartGeneratorWhenReady());
-
-        componentsExecutor.submit(commandQueueListener);
-        commandQueueListener.waitForInitialisation();
     }
 
 
 
     @Test
+    @Ignore
     public void buildImage() throws Exception {
-        AbstractDockerizer dockerizer = new SMLDataGenDockerBuilder(new SMLDockersBuilder(DataGeneratorRunner.class).init()).build();
+        init();
+        AbstractDockerizer dockerizer = dataGenBuilder.build();
         dockerizer.prepareImage();
         Assert.assertNull(dockerizer.anyExceptions());
     }
@@ -71,25 +76,29 @@ public class DataGeneratorTest extends EnvironmentVariables {
     }
 
     @Test
-    public void startStopDockerized() throws Exception {
+    public void checkHeathDockerized() throws Exception {
         exec(true);
     }
 
     public void exec(Boolean dockerize) throws Exception {
 
-        before();
+        init();
+
+        //rabbitMqDockerizer.run();
+        commandQueueListener.setCommandReactions(new StartGeneratorWhenReady());
+
+        componentsExecutor.submit(commandQueueListener);
+        commandQueueListener.waitForInitialisation();
 
         Component dataGen = new DataGenerator();
-        Component system = new SystemAdapter();
 
         if(dockerize){
             boolean useCachedImage = true;
-            dataGen = new SMLDataGenDockerBuilder(new SMLDockersBuilder(DataGeneratorRunner.class).init()).useCachedImage(useCachedImage).build();
-            //system = new SystemAdapterDockerBuilder(new SMLDockersBuilder(SystemAdapter.class).init()).useCachedImage(useCachedImage).build();
+            dataGen = dataGenBuilder.build();
+                        //system = new SystemAdapterDockerBuilder(new CommonDockersBuilder(SystemAdapter.class).init()).useCachedImage(useCachedImage).build();
         }
 
         componentsExecutor.submit(dataGen);
-        componentsExecutor.submit(system);
 
         commandQueueListener.waitForTermination();
         Assert.assertFalse(componentsExecutor.anyExceptions());
