@@ -25,8 +25,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.agt.ferromatikdata.anomalydetector.GeneratedDatasetConstants.CHARSET;
 import static org.hobbit.core.Constants.DATA_QUEUE_NAME_KEY;
-import static org.hobbit.sdk.CommonConstants.CHARSET;
 import static org.hobbit.sml.datagen.Constants.FORMAT_INPUT_NAME;
 
 /**
@@ -40,6 +40,7 @@ public class DataGenerator extends AbstractDataGenerator {
     private long bytesSent;
     private OutputFormatter outputFormatter;
     private final List<String> tuplesToSend = new ArrayList<>();
+    private String queueName = DATA_QUEUE_NAME_KEY;
     //private final TerminationMessageProtocol.OutputSender outputSender = new TerminationMessageProtocol.OutputSender();
 
     @Override
@@ -60,6 +61,7 @@ public class DataGenerator extends AbstractDataGenerator {
         if(!System.getenv().containsKey(DATA_QUEUE_NAME_KEY))
             throw new Exception(DATA_QUEUE_NAME_KEY+" is not defined");
 
+        queueName = System.getenv().get(DATA_QUEUE_NAME_KEY);
 
         GeneratorTask task =  GeneratorTasks.newOneMachineTask(Integer.parseInt(System.getenv().get(Constants.GENERATOR_POPULATION)), FerromatikDatasetModelFacade.deserializeDefault());
 
@@ -90,7 +92,7 @@ public class DataGenerator extends AbstractDataGenerator {
 
     public void sendData() throws IOException {
         String str = String.join("", tuplesToSend.toArray(new String[0]));
-        String queueName = System.getenv().get(DATA_QUEUE_NAME_KEY);
+
         byte[] bytesToSend = str.getBytes();
         logger.debug("Sending "+String.valueOf(bytesToSend.length)+" bytes to rabbitMQ (queueName="+queueName+")");
 

@@ -1,8 +1,7 @@
 package org.hobbit.sml.datagen.docker;
 
-
-import org.hobbit.sdk.docker.builders.DataGenDockerBuilder;
-import org.hobbit.sdk.docker.builders.common.DynamicDockerFileBuilder;
+import org.hobbit.sdk.docker.builders.DynamicDockerFileBuilder;
+import org.hobbit.sdk.docker.builders.hobbit.DataGenDockerBuilder;
 
 import static org.hobbit.core.Constants.*;
 import static org.hobbit.sml.datagen.Constants.FORMAT_INPUT_NAME;

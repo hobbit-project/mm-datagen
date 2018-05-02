@@ -2,13 +2,13 @@ package org.hobbit.sml.datagen;
 
 import org.apache.jena.rdf.model.*;
 import org.hobbit.core.components.Component;
-import org.hobbit.sdk.ComponentsExecutor;
 import org.hobbit.sdk.EnvironmentVariablesWrapper;
 import org.hobbit.sdk.docker.AbstractDockerizer;
 
 import org.hobbit.sdk.docker.RabbitMqDockerizer;
 import org.hobbit.sdk.utils.CommandQueueListener;
 
+import org.hobbit.sdk.utils.ComponentsExecutor;
 import org.hobbit.sml.datagen.docker.CommonDockersBuilder;
 import org.hobbit.sml.datagen.docker.SMLDataGenDockerBuilder;
 import org.junit.Assert;
@@ -40,7 +40,7 @@ public class DataGeneratorTest extends EnvironmentVariablesWrapper {
         componentsExecutor = new ComponentsExecutor();
         commandQueueListener = new CommandQueueListener();
 
-        rabbitMqDockerizer = RabbitMqDockerizer.builder().hostName("192.168.56.20").build();
+        rabbitMqDockerizer = RabbitMqDockerizer.builder().hostName("rabbit").build();
 
         String experimentId = "http://example.com/exp1";
         String systemUri = "http://agt.com/systems#sys122";
@@ -95,7 +95,6 @@ public class DataGeneratorTest extends EnvironmentVariablesWrapper {
         if(dockerize){
             boolean useCachedImage = true;
             dataGen = dataGenBuilder.build();
-                        //system = new SystemAdapterDockerBuilder(new CommonDockersBuilder(SystemAdapter.class).init()).useCachedImage(useCachedImage).build();
         }
 
         componentsExecutor.submit(dataGen);
