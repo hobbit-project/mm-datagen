@@ -1,6 +1,5 @@
 package org.hobbit.sml.datagen;
 
-import org.apache.jena.rdf.model.*;
 import org.hobbit.core.components.Component;
 import org.hobbit.sdk.EnvironmentVariablesWrapper;
 import org.hobbit.sdk.docker.AbstractDockerizer;
@@ -12,12 +11,8 @@ import org.hobbit.sdk.utils.ComponentsExecutor;
 import org.hobbit.sml.datagen.docker.CommonDockersBuilder;
 import org.hobbit.sml.datagen.docker.SMLDataGenDockerBuilder;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 
 import static org.hobbit.core.Constants.DATA_QUEUE_NAME_KEY;
 import static org.hobbit.sml.datagen.Constants.*;
@@ -50,9 +45,9 @@ public class DataGeneratorTest extends EnvironmentVariablesWrapper {
         setupGeneratorEnvironmentVariables(1,1);
         //setupSystemEnvironmentVariables(systemUri);
 
-        environmentVariables.set(GENERATOR_SEED,"123");
-        environmentVariables.set(GENERATOR_POPULATION, "30");
-        environmentVariables.set(FORMAT_INPUT_NAME, "0");
+        environmentVariables.set(GENERATOR_SEED_KEY,"123");
+        environmentVariables.set(GENERATOR_POPULATION_KEY, "30");
+        environmentVariables.set(OUTPUT_FORMAT_KEY, "0");
         environmentVariables.set(DATA_QUEUE_NAME_KEY, "test1");
 
         dataGenBuilder = new SMLDataGenDockerBuilder(new CommonDockersBuilder(DataGeneratorRunner.class, DATAGEN_IMAGE_NAME).useCachedImage(true));

@@ -6,13 +6,8 @@ import com.agt.ferromatikdata.core.GeneratorTask;
 import com.agt.ferromatikdata.formatting.CsvFormatter;
 import com.agt.ferromatikdata.formatting.OutputFormatter;
 import com.agt.ferromatikdata.formatting.RdfFormatter;
-import com.rabbitmq.client.MessageProperties;
-import org.hobbit.core.Commands;
 import org.hobbit.core.components.AbstractDataGenerator;
-import org.hobbit.core.data.RabbitQueue;
-import org.hobbit.core.rabbit.DataSenderImpl;
 import org.hobbit.core.rabbit.SimpleFileSender;
-import org.hobbit.sdk.utils.CommandSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,12 +17,11 @@ import java.io.InputStream;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static com.agt.ferromatikdata.anomalydetector.GeneratedDatasetConstants.CHARSET;
 import static org.hobbit.core.Constants.DATA_QUEUE_NAME_KEY;
-import static org.hobbit.sml.datagen.Constants.FORMAT_INPUT_NAME;
+import static org.hobbit.sml.datagen.Constants.OUTPUT_FORMAT_KEY;
 
 /**
  * @author Pavel Smirnov
@@ -49,21 +43,21 @@ public class DataGenerator extends AbstractDataGenerator {
         super.init();
         logger.debug("Init()");
 
-        if(!System.getenv().containsKey(Constants.GENERATOR_SEED))
-            throw new Exception(Constants.GENERATOR_SEED+" is not defined");
+        if(!System.getenv().containsKey(Constants.GENERATOR_SEED_KEY))
+            throw new Exception(Constants.GENERATOR_SEED_KEY +" is not defined");
 
-        if(!System.getenv().containsKey(FORMAT_INPUT_NAME))
-            throw new Exception(FORMAT_INPUT_NAME+" is not defined");
+        if(!System.getenv().containsKey(OUTPUT_FORMAT_KEY))
+            throw new Exception(OUTPUT_FORMAT_KEY +" is not defined");
 
-        if(!System.getenv().containsKey(Constants.GENERATOR_POPULATION))
-            throw new Exception(Constants.GENERATOR_POPULATION+" is not defined");
+        if(!System.getenv().containsKey(Constants.GENERATOR_POPULATION_KEY))
+            throw new Exception(Constants.GENERATOR_POPULATION_KEY +" is not defined");
 
         if(!System.getenv().containsKey(DATA_QUEUE_NAME_KEY))
             throw new Exception(DATA_QUEUE_NAME_KEY+" is not defined");
 
         queueName = System.getenv().get(DATA_QUEUE_NAME_KEY);
 
-        GeneratorTask task =  GeneratorTasks.newOneMachineTask(Integer.parseInt(System.getenv().get(Constants.GENERATOR_POPULATION)), FerromatikDatasetModelFacade.deserializeDefault());
+        GeneratorTask task =  GeneratorTasks.newOneMachineTask(Integer.parseInt(System.getenv().get(Constants.GENERATOR_POPULATION_KEY)), FerromatikDatasetModelFacade.deserializeDefault());
 
         outputFormatter = newOutputFormatter();
         dataGenerator = new com.agt.ferromatikdata.dataframe.DataGenerator.Builder()
@@ -71,7 +65,7 @@ public class DataGenerator extends AbstractDataGenerator {
                 .generationDelayNanos(1000)
                 .initialDelayMillis(0)
                 .dataPointsListener(newDataPointsListener())
-                .seed(Integer.parseInt(System.getenv().get(Constants.GENERATOR_SEED)))
+                .seed(Integer.parseInt(System.getenv().get(Constants.GENERATOR_SEED_KEY)))
                 .charset(CHARSET)
                 .gapBetweenMeasurements(Duration.ofSeconds(1))
                 .startingDateTime(getStartingDateTime())
@@ -124,7 +118,7 @@ public class DataGenerator extends AbstractDataGenerator {
 
 
     private OutputFormatter newOutputFormatter() throws Exception {
-        int formatInt = Integer.parseInt(System.getenv().get(FORMAT_INPUT_NAME));
+        int formatInt = Integer.parseInt(System.getenv().get(OUTPUT_FORMAT_KEY));
         //int formatInt = 0;
         OutputFormatter formatter = (formatInt == 0) ? new RdfFormatter(CHARSET) : new CsvFormatter(CHARSET);
         formatter.init();
