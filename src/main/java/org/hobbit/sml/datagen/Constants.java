@@ -10,4 +10,10 @@ public class Constants {
     public static final String GENERATOR_BENCHMARK_DURATION_KEY = "GENERATOR_BENCHMARK_DURATION";
 
     public static final String OUTPUT_FORMAT_KEY ="OUTPUT_FORMAT";
+
+
+    public static String GIT_REPO_PATH = "git.project-hobbit.eu:4567/smirnp/";
+    public static String PROJECT_NAME = "sml-v1-mimicking-";
+
+    public static final String DATAGEN_IMAGE_NAME = GIT_REPO_PATH+PROJECT_NAME +"datagen";
 }

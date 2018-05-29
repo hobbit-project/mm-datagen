@@ -14,7 +14,6 @@ public class DataGeneratorRunner {
         DataGenerator dataGenerator = new DataGenerator();
         dataGenerator.init();
         dataGenerator.generateData();
-        //dataGenerator.sendData();
         dataGenerator.close();
     }
 }

@@ -7,6 +7,7 @@ import com.agt.ferromatikdata.formatting.CsvFormatter;
 import com.agt.ferromatikdata.formatting.OutputFormatter;
 import com.agt.ferromatikdata.formatting.RdfFormatter;
 import org.hobbit.core.components.AbstractDataGenerator;
+import org.hobbit.core.rabbit.DataSenderImpl;
 import org.hobbit.core.rabbit.SimpleFileSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +19,8 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static com.agt.ferromatikdata.anomalydetector.GeneratedDatasetConstants.CHARSET;
 import static org.hobbit.core.Constants.DATA_QUEUE_NAME_KEY;
@@ -33,9 +36,18 @@ public class DataGenerator extends AbstractDataGenerator {
     private com.agt.ferromatikdata.dataframe.DataGenerator dataGenerator;
     private long bytesSent;
     private OutputFormatter outputFormatter;
-    private final List<String> tuplesToSend = new ArrayList<>();
+    //private final List<String> tuplesToSend = new ArrayList<>();
     private String queueName = DATA_QUEUE_NAME_KEY;
+    int tuplesSent=0;
+    //DataSenderImpl customQueueSender;
+    SimpleFileSender sender;
     //private final TerminationMessageProtocol.OutputSender outputSender = new TerminationMessageProtocol.OutputSender();
+    Timer timer;
+    int timerPeriodSeconds = 5;
+    int fileIndex=0;
+    int population = 0;
+
+    List<String> tuplesToSend = new ArrayList<>();
 
     @Override
     public void init() throws Exception {
@@ -57,7 +69,14 @@ public class DataGenerator extends AbstractDataGenerator {
 
         queueName = System.getenv().get(DATA_QUEUE_NAME_KEY);
 
-        GeneratorTask task =  GeneratorTasks.newOneMachineTask(Integer.parseInt(System.getenv().get(Constants.GENERATOR_POPULATION_KEY)), FerromatikDatasetModelFacade.deserializeDefault());
+        //customQueueSender = DataSenderImpl.builder().queue(this.getFactoryForOutgoingDataQueues(), queueName).build();
+        sender = SimpleFileSender.create(this.outgoingDataQueuefactory, queueName);
+
+        population = Integer.parseInt(System.getenv().get(Constants.GENERATOR_POPULATION_KEY));
+
+        timer = new Timer();
+
+        GeneratorTask task =  GeneratorTasks.newOneMachineTask(population, FerromatikDatasetModelFacade.deserializeDefault());
 
         outputFormatter = newOutputFormatter();
         dataGenerator = new com.agt.ferromatikdata.dataframe.DataGenerator.Builder()
@@ -70,45 +89,77 @@ public class DataGenerator extends AbstractDataGenerator {
                 .gapBetweenMeasurements(Duration.ofSeconds(1))
                 .startingDateTime(getStartingDateTime())
                 .build();
-        String test="123";
+
+
+    }
+
+    private void startTimer(){
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+
+                //long valDiff = (tuplesReceived.size() - lastReportedValue)/timerPeriodSeconds;
+                logger.debug("{} tuples generated ({} bytes)", tuplesSent, bytesSent);
+                //lastReportedValue = tuplesReceived.size();
+
+            }
+        }, 1000, timerPeriodSeconds*1000);
+
+    }
+
+    public void run() throws Exception {
+        this.generateData();
+
     }
 
     //@Override
     public void generateData() throws Exception {
         logger.debug("generateData()");
+        startTimer();
         int dataGeneratorId = getGeneratorId();
         int numberOfGenerators = getNumberOfGenerators();
 
         dataGenerator.run();
-        logger.debug("generation finished");
-        sendData();
+        logger.debug("generation finished. {} tuples ({} bytes) sent", tuplesSent, bytesSent);
+
+        timer.cancel();
+        //sendData(String.join("",tuplesToSend.toArray(new String[0])).getBytes());
     }
 
-    public void sendData() throws IOException {
-        String str = String.join("", tuplesToSend.toArray(new String[0]));
+    public void sendData(byte[] data, String filename) throws IOException {
+        //String str = String.join("", tuplesToSend.toArray(new String[0]));
 
-        byte[] bytesToSend = str.getBytes();
-        logger.debug("Sending "+String.valueOf(bytesToSend.length)+" bytes to rabbitMQ (queueName="+queueName+")");
+        //byte[] bytesToSend = str.getBytes();
+        //logger.debug("Sending "+String.valueOf(bytesToSend.length)+" bytes to rabbitMQ (queueName="+queueName+")");
 
-        InputStream is = new ByteArrayInputStream(bytesToSend);
-        SimpleFileSender sender = SimpleFileSender.create(this.outgoingDataQueuefactory, queueName);
-        sender.streamData(is, queueName+".rdf");
+        //InputStream is = new ByteArrayInputStream(bytesToSend);
+//        SimpleFileSender sender = SimpleFileSender.create(this.outgoingDataQueuefactory, "1.rdf");
+        InputStream is = new ByteArrayInputStream(data);
+        sender.streamData(is, filename);
     }
 
-    @Override
-    public void close() throws IOException {
-        // Free the resources you requested here
-        logger.debug("close()");
-        // Always close the super class after yours!
-        super.close();
-    }
 
     private com.agt.ferromatikdata.dataframe.DataGenerator.DataPointsListener newDataPointsListener() throws Exception {
         return dataPointSource -> {
             try {
                 String outputDataPoint = dataPointSource.formatUsing(outputFormatter);
                 byte[] bytesToSend = outputDataPoint.getBytes();
+
+                tuplesSent++;
+                //sendData(bytesToSend);
                 tuplesToSend.add(outputDataPoint);
+
+                if(tuplesSent%1000==0 || tuplesSent==population) {
+                    try {
+                        sendData(String.join("", tuplesToSend.toArray(new String[0])).getBytes(), queueName + "_"+fileIndex+".rdf");
+                        tuplesToSend.clear();
+                        fileIndex++;
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+
                 bytesSent += bytesToSend.length;
             } catch (Exception e) {
                 logger.error("Exception", e);
@@ -134,4 +185,12 @@ public class DataGenerator extends AbstractDataGenerator {
         return LocalDateTime.of(year, month, dayOfMonth, hour, minute);
     }
 
+    @Override
+    public void close() throws IOException {
+        // Free the resources you requested here
+        logger.debug("close()");
+        timer.cancel();
+        // Always close the super class after yours!
+        super.close();
+    }
 }

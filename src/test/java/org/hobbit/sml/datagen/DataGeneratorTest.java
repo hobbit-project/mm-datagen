@@ -1,13 +1,16 @@
 package org.hobbit.sml.datagen;
 
 import org.hobbit.core.components.Component;
+import org.hobbit.core.mimic.DockerBasedMimickingAlg;
 import org.hobbit.sdk.EnvironmentVariablesWrapper;
+import org.hobbit.sdk.KeyValue;
 import org.hobbit.sdk.docker.AbstractDockerizer;
 
 import org.hobbit.sdk.docker.RabbitMqDockerizer;
 import org.hobbit.sdk.utils.CommandQueueListener;
 
 import org.hobbit.sdk.utils.ComponentsExecutor;
+import org.hobbit.sdk.utils.commandreactions.MultipleCommandsReaction;
 import org.hobbit.sml.datagen.docker.CommonDockersBuilder;
 import org.hobbit.sml.datagen.docker.SMLDataGenDockerBuilder;
 import org.junit.Assert;
@@ -16,7 +19,6 @@ import org.junit.Test;
 
 import static org.hobbit.core.Constants.DATA_QUEUE_NAME_KEY;
 import static org.hobbit.sml.datagen.Constants.*;
-import static org.hobbit.sml.datagen.docker.CommonDockersBuilder.DATAGEN_IMAGE_NAME;
 
 /**
  * @author Pavel Smirnov
@@ -45,10 +47,10 @@ public class DataGeneratorTest extends EnvironmentVariablesWrapper {
         setupGeneratorEnvironmentVariables(1,1);
         //setupSystemEnvironmentVariables(systemUri);
 
-        environmentVariables.set(GENERATOR_SEED_KEY,"123");
-        environmentVariables.set(GENERATOR_POPULATION_KEY, "30");
-        environmentVariables.set(OUTPUT_FORMAT_KEY, "0");
-        environmentVariables.set(DATA_QUEUE_NAME_KEY, "test1");
+//        environmentVariables.set(GENERATOR_SEED_KEY,"123");
+//        environmentVariables.set(GENERATOR_POPULATION_KEY, "5000");
+//        environmentVariables.set(OUTPUT_FORMAT_KEY, "0");
+//        environmentVariables.set(DATA_QUEUE_NAME_KEY, "test1");
 
         dataGenBuilder = new SMLDataGenDockerBuilder(new CommonDockersBuilder(DataGeneratorRunner.class, DATAGEN_IMAGE_NAME).useCachedImage(true));
 
@@ -79,7 +81,7 @@ public class DataGeneratorTest extends EnvironmentVariablesWrapper {
 
         init();
 
-        //rabbitMqDockerizer.run();
+        rabbitMqDockerizer.run();
         commandQueueListener.setCommandReactions(new StartGeneratorWhenReady());
 
         componentsExecutor.submit(commandQueueListener);
@@ -92,15 +94,35 @@ public class DataGeneratorTest extends EnvironmentVariablesWrapper {
             dataGen = dataGenBuilder.build();
         }
 
-        componentsExecutor.submit(dataGen);
+
+
+        commandQueueListener.setCommandReactions(
+                new MultipleCommandsReaction.Builder(componentsExecutor, commandQueueListener)
+                        .customContainerImage(dataGen, DATAGEN_IMAGE_NAME)
+                        .build()
+        );
+
+        DockerBasedMimickingAlg alg = new DockerBasedMimickingAlg(commandQueueListener, DATAGEN_IMAGE_NAME);
+        alg.generateData("/mnt/share/Projects/mm-datagen", createParameters());
 
         commandQueueListener.waitForTermination();
         Assert.assertFalse(componentsExecutor.anyExceptions());
         after();
     }
 
+
+
     //@After
     public void after() throws Exception {
         rabbitMqDockerizer.stop();
+    }
+
+    public static String[] createParameters(){
+        KeyValue kv = new KeyValue();
+        kv.setValue(GENERATOR_SEED_KEY,"123");
+        kv.setValue(GENERATOR_POPULATION_KEY, "3000");
+        kv.setValue(OUTPUT_FORMAT_KEY, "0");
+        //kv.setValue(DATA_QUEUE_NAME_KEY, "test1");
+        return kv.mapToArray();
     }
 }
